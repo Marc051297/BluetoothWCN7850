@@ -29,7 +29,9 @@ The machine does **not** boot OpenCore from the macOS disk. `nvram 4D1FDA02-38C7
    and the same two keys under `NVRAM → Delete` for the same GUID so they are rewritten on every boot.
 4. Reboot.
 
-For a first try, `-qcabtoff` in boot-args disables the loader without touching anything else.
+For a first try, `-qcabtoff` in boot-args disables the loader without touching anything else, and `qcabt_stage=<n>` parks it before stage n (1 open + version read, 2 set configuration, 3 rampatch, 4 NVM) so a bad boot can be bisected one stage per boot, without rebuilding. Runtime `nvram` writes do not persist on this board: both switches go into the USB config's boot-args.
+
+If the machine freezes or resets right after the Bluetooth device enumerates, assume this kext (a panic looks like a freeze with the NVIDIA driver, and no panic report gets saved here). Hard power off, F11, pick the NVMe EFI; **do not reset NVRAM**. Picking the NVMe macOS from the USB stick's own OpenCore picker still injects the stick's kexts.
 
 ## What to look at after the reboot
 
@@ -38,16 +40,20 @@ kextstat | grep -E 'razvanccr|BlueToolFixup|Lilu'
 ```
 
 ```bash
-log show --last 10m --predicate 'eventMessage CONTAINS "QcaBluetooth"' --style compact
+ioreg -l -w0 -c QcaBluetoothFirmware | grep -E 'Log|Stage|LastResult|RomVersion|PatchVersion|"Status"|FirmwareLoaded'
 ```
 
-Expected lines: `probe 0489:e10a ...`, `rom 0x00190200 (WCN785x 2.0) patch 0x000043fb ... status 0x20`, `rampatch_usb_00190200.bin: rom 0x00190200 build 0x8567`, `after rampatch: patch 0x00008567 status 0xa0`, `after nvm: patch 0x00008567 status 0xe0`, `match: firmware loaded`.
+```bash
+sudo dmesg | grep QcaBluetooth
+```
+
+(An OpenCore-injected kext's `IOLog` lines do not reach the unified log, so `log show` finds nothing: the `Log` property on the driver and `dmesg` are the two places to read. Lesson from the Wi-Fi bring-up, see [05-lessons-checklist.md](05-lessons-checklist.md).) Expected lines in `Log`: `probe 0489:e10a ...`, `rom 0x00190200 (WCN785x 2.0) patch 0x000043fb ... status 0x20`, `rampatch_usb_00190200.bin: rom 0x00190200 build 0x8567`, `after rampatch: patch 0x00008567 status 0xa0`, `after nvm: patch 0x00008567 status 0xe0`, `match: firmware loaded`.
 
 ```bash
 ioreg -p IOUSB -l -w0 -r -n 'Bluetooth USB Host Controller'
 ```
 
-Should show `FirmwareLoaded = Yes` on the device and a `QcaBluetoothFirmware` child with `RomVersion`, `PatchVersion`, `Status`, `LastAttempt = match`, `LastResult = 0`.
+Should show `FirmwareLoaded = Yes` on the device and a `QcaBluetoothFirmware` child with `RomVersion`, `PatchVersion`, `Status = 0xe0`, `Stage = 100`, `LastAttempt = match`, `LastResult = 0`.
 
 ```bash
 log show --last 10m --predicate 'process == "bluetoothd" AND (eventMessage CONTAINS "bm3_usb" OR eventMessage CONTAINS "FindTransportType" OR eventMessage CONTAINS "Dongle")' --style compact
@@ -98,3 +104,7 @@ The machine came back from the **NVMe EFI** (`boot-path` GUID `9232EEDC-…` = `
   3. `probe()` dereferenced the device descriptor without a null check.
   Not changed, by design: the whole download runs synchronously in `start()` (as IntelBluetoothFirmware does), with a 4 KiB kernel-allocated transfer buffer and nothing large on the stack; the firmware arrays are `const` data in the kext image.
 - The kext is still untested in the kernel. Next: boot from the USB stick and run the checks above. To bisect a boot problem: `-qcabtoff` disables only the loader.
+
+## 2026-10-16 00:40: lessons pass, build `46e1de4e` on the USB stick
+
+Went through every freeze/panic lesson of the Wi-Fi bring-up ([05-lessons-checklist.md](05-lessons-checklist.md)). Changes: thread call allocated before power management can call back; EP0 transfers moved off the stack into a `createIOBuffer` descriptor; `setConfiguration` unconditional (reference behaviour); `Log`/`Stage` IORegistry properties; `qcabt_stage=<n>`; OpenCore debug Target back to 0 on the USB config. Checks: no `__cxa_atexit`, every undefined symbol resolves in the kernel or IOUSBHostFamily, no kernel symbol redefined. USB EFI now: Lilu, BlueToolFixup 2.7.3, …, AirportWCN7850 0.0.1 (`c3dc5976`, same as the NVMe), QcaBluetooth 0.1.0 (`46e1de4e`); boot-args = NVMe's + `-btlfxboardid`. Still not booted.

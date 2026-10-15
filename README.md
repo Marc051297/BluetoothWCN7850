@@ -13,7 +13,7 @@ A macOS firmware loader for the Bluetooth half of the **Qualcomm WCN7850** (Fast
 | `tools/usbdesc.c` | Dumps a USB device's descriptors without opening it. |
 | `scripts/fetch-firmware.sh` | Fetches the firmware from linux-firmware (pinned release and checksums) and embeds it into the kext. Not committed: it is Qualcomm's, redistributable in binary form. |
 | `scripts/build-bluetoolfixup.sh` | Builds BlueToolFixup from the BrcmPatchRAM and Lilu sources so the build matches the running Lilu. |
-| `docs/` | [Survey](docs/01-survey.md), [firmware protocol](docs/02-firmware-protocol.md), [design](docs/03-design.md), [bring-up log and test plan](docs/04-bringup.md). |
+| `docs/` | [Survey](docs/01-survey.md), [firmware protocol](docs/02-firmware-protocol.md), [design](docs/03-design.md), [bring-up log and test plan](docs/04-bringup.md), [lessons from the Wi-Fi kext checked against this one](docs/05-lessons-checklist.md). |
 
 ## Building
 
@@ -39,7 +39,7 @@ scripts/build-bluetoolfixup.sh
 
 ## Installing
 
-Both kexts go into OpenCore's `Kernel → Add` (BlueToolFixup after Lilu), plus the boot argument `-btlfxboardid` and two NVRAM variables for `bluetoothd`. The exact entries and what to check after the reboot are in [docs/04-bringup.md](docs/04-bringup.md).
+Both kexts go into OpenCore's `Kernel → Add` (BlueToolFixup after Lilu), plus the boot argument `-btlfxboardid` and two NVRAM variables for `bluetoothd`. `-qcabtoff` disables the loader, `qcabt_stage=<n>` parks it before stage n; the driver publishes its log and progress as `Log` and `Stage` in the I/O Registry (`ioreg -l -w0 -c QcaBluetoothFirmware`), because an OpenCore-injected kext's `IOLog` never reaches the unified log. The exact entries and what to check after the reboot are in [docs/04-bringup.md](docs/04-bringup.md).
 
 ## How it works, in one paragraph
 

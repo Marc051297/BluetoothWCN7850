@@ -28,6 +28,10 @@ struct qca_device_info {
     const char *name;
 };
 
+// qcabt_stage=<n> in boot-args parks the loader before stage n (bisection without a rebuild):
+// 1 open + version read, 2 set configuration + bulk pipe, 3 rampatch download, 4 NVM download.
+enum { kStageOpen = 1, kStageConfigure = 2, kStageRampatch = 3, kStageNvm = 4 };
+
 class QcaBluetoothFirmware : public IOService {
     OSDeclareDefaultStructors(QcaBluetoothFirmware)
 
@@ -41,11 +45,21 @@ private:
     IOUSBHostDevice *mDevice = nullptr;
     IOUSBHostInterface *mInterface = nullptr;
     IOUSBHostPipe *mBulkOut = nullptr;
-    IOBufferMemoryDescriptor *mBuf = nullptr;
+    IOBufferMemoryDescriptor *mCtrl = nullptr;   // EP0 transfers (never DMA from the stack)
+    IOBufferMemoryDescriptor *mBuf = nullptr;    // bulk transfers, one 4 KiB packet
     thread_call_t mResumeCall = nullptr;
     bool mWasOff = false;
     bool mStopping = false;
+    uint32_t mStageLimit = 1000;
+    // Every log line also lands here and is published as the "Log" property: an OpenCore-injected
+    // kext's IOLog does not reach the unified log, ioreg is what survives a freeze.
+    char mLog[4096] = {};
+    size_t mLogLen = 0;
 
+    void log(const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+    void stage(uint32_t n);
+    bool openCtrl();
+    void closeCtrl();
     IOReturn vendorIn(uint8_t request, void *buf, uint16_t len);
     IOReturn readVersion(qca_version &ver, uint8_t &status);
     bool openBulk();
