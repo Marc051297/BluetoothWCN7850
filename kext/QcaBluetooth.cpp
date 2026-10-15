@@ -62,6 +62,7 @@ IOService *QcaBluetoothFirmware::probe(IOService *provider, SInt32 *score) {
     IOUSBHostDevice *dev = OSDynamicCast(IOUSBHostDevice, provider);
     if (!dev) return nullptr;
     const StandardUSB::DeviceDescriptor *dd = dev->getDeviceDescriptor();
+    if (!dd) { LOG("probe: no device descriptor"); return nullptr; }
     LOG("probe %04x:%04x bcdDevice %04x class %02x/%02x/%02x", USBToHost16(dd->idVendor), USBToHost16(dd->idProduct),
         USBToHost16(dd->bcdDevice), dd->bDeviceClass, dd->bDeviceSubClass, dd->bDeviceProtocol);
     return this;
@@ -88,7 +89,8 @@ bool QcaBluetoothFirmware::start(IOService *provider) {
 }
 
 void QcaBluetoothFirmware::stop(IOService *provider) {
-    if (mResumeCall) { thread_call_cancel(mResumeCall); thread_call_free(mResumeCall); mResumeCall = nullptr; }
+    mStopping = true;
+    if (mResumeCall) { thread_call_cancel_wait(mResumeCall); thread_call_free(mResumeCall); mResumeCall = nullptr; }
     closeBulk();
     if (mDevice && mDevice->isOpen(this)) mDevice->close(this);
     PMstop();
@@ -101,17 +103,23 @@ IOReturn QcaBluetoothFirmware::setPowerState(unsigned long state, IOService *) {
         mWasOff = false;
         // The chip keeps its RAM across a USB reset but not across a power loss; check from a thread,
         // setPowerState must not block on USB traffic.
-        if (mResumeCall) thread_call_enter(mResumeCall);
+        if (mResumeCall && !mStopping) {
+            retain();                                   // released by resumeThread
+            if (thread_call_enter(mResumeCall)) release();   // was already queued: drop the extra reference
+        }
     }
     return kIOPMAckImplied;
 }
 
 void QcaBluetoothFirmware::resumeThread(thread_call_param_t owner, thread_call_param_t) {
-    static_cast<QcaBluetoothFirmware *>(owner)->loadAndPublish("wake");
+    QcaBluetoothFirmware *me = static_cast<QcaBluetoothFirmware *>(owner);
+    if (!me->mStopping && !me->isInactive() && me->mDevice && !me->mDevice->isInactive()) me->loadAndPublish("wake");
+    me->release();
 }
 
 // Open the device, run the download if the status bits say it is needed, publish the result, close the device.
 void QcaBluetoothFirmware::loadAndPublish(const char *why) {
+    if (!mDevice || mDevice->isInactive()) { LOG("%s: device is gone", why); return; }
     if (!mDevice->open(this)) {
         // Normal after boot: bluetoothd holds the device (USBDeviceOpenSeize). Nothing we can do from here.
         LOG("%s: cannot open the device (held by another client), not touching it", why);
@@ -172,11 +180,11 @@ bool QcaBluetoothFirmware::openBulk() {
     OSObject *o;
     while ((o = it->getNextObject())) {
         IOUSBHostInterface *intf = OSDynamicCast(IOUSBHostInterface, o);
-        if (intf && intf->getInterfaceDescriptor() && intf->getInterfaceDescriptor()->bInterfaceNumber == 0) { mInterface = intf; break; }
+        if (intf && intf->getInterfaceDescriptor() && intf->getInterfaceDescriptor()->bInterfaceNumber == 0) { intf->retain(); mInterface = intf; break; }
     }
     it->release();
     if (!mInterface) { LOG("interface 0 not found"); return false; }
-    if (!mInterface->open(this)) { LOG("cannot open interface 0"); mInterface = nullptr; return false; }
+    if (!mInterface->open(this)) { LOG("cannot open interface 0"); OSSafeReleaseNULL(mInterface); return false; }
     mBulkOut = mInterface->copyPipe(0x02);
     if (!mBulkOut) { LOG("bulk OUT endpoint 2 not found"); return false; }
     mBuf = mDevice->createIOBuffer(kIODirectionOut, QCA_DFU_PACKET_LEN);
@@ -188,7 +196,7 @@ bool QcaBluetoothFirmware::openBulk() {
 void QcaBluetoothFirmware::closeBulk() {
     if (mBuf) { mBuf->complete(kIODirectionOut); OSSafeReleaseNULL(mBuf); }
     if (mBulkOut) { mBulkOut->abort(); OSSafeReleaseNULL(mBulkOut); }
-    if (mInterface) { if (mInterface->isOpen(this)) mInterface->close(this); mInterface = nullptr; }
+    if (mInterface) { if (mInterface->isOpen(this)) mInterface->close(this); OSSafeReleaseNULL(mInterface); }
 }
 
 // Linux btusb_setup_qca_download_fw: header on EP0, body on bulk OUT 2 in 4 KiB writes.

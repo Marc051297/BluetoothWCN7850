@@ -86,3 +86,15 @@ Should now report a controller with a real address, `Transport: USB`, vendor `0x
 ### 2026-10-15 18:25, first reboot: wrong EFI, no test
 
 The machine came back from the **NVMe EFI** (`boot-path` GUID `9232EEDC-…` = `disk1s2`), not the USB stick. Consequences seen: `-btlfxboardid` absent from `boot-args`, neither kext loaded, no `QcaBluetooth` log lines, and `0489:e10a` not enumerated at all (the NVMe config has no USBToolBox port map, so the Bluetooth port is behind the 15-port limit). Oddly `bluetoothExternalDongleFailed` and `bluetoothInternalControllerInfo` were present in NVRAM anyway. Nothing about the kext was learned. Needs a boot from the USB stick (pick it in the OpenCore picker).
+
+## 2026-10-16 00:20: second deploy to the USB EFI, source review
+
+- **Last night's reboot came from the NVMe EFI** (`boot-path` → `HD(2,GPT,9232EEDC-…)` = `disk0s2` after the renumbering; the USB stick is `disk3s1`, GUID `1623DE29-…`). The machine picks the NVMe EFI unless the USB stick is chosen in the firmware boot menu / OpenCore picker. Disk numbers move between boots: identify partitions by GUID, not by `diskNsM`.
+- **The Wi-Fi bisection rebuilt the USB EFI after the first Bluetooth install** (`config.plist.before-bisect-20261015-182851`), which removed both Bluetooth kexts and the boot argument again. The two NVRAM variables survived in the config.
+- Redeployed: USB EFI = NVMe EFI (same `AirportWCN7850.kext` 0.0.1, hash `c3dc5976`, `MinKernel 25.0.0`, `Misc→Debug→Target 67`, NVMe boot-args without `qwz_debug`) **plus** `BlueToolFixup.kext` 2.7.3 (Kernel→Add index 1), `QcaBluetooth.kext` 0.1.0 build `d31dd7ab` (index 12), `-btlfxboardid`, and the two Bluetooth NVRAM keys in Add and Delete. Verified with a plist diff; backup `config.plist.before-qcabt-20261016-002143` next to it.
+- **Source review before the first kernel load**, with the Wi-Fi driver's panic history in mind (NULL dereferences from init ordering, use after the owner went away, stack overflows). Findings, all fixed in this commit:
+  1. `openBulk()` kept a borrowed pointer to the `IOUSBHostInterface`; if the device terminated between the download and `closeBulk()` that was a use-after-free. The interface is now retained while held.
+  2. The wake path (`thread_call`) could run after `stop()` freed its owner: `thread_call_cancel()` does not wait for a running callback. `stop()` now uses `thread_call_cancel_wait()` (exported by the kernel), `setPowerState` retains the driver for the queued call and the callback releases it, and the callback checks `isInactive()` on itself and the device before touching USB.
+  3. `probe()` dereferenced the device descriptor without a null check.
+  Not changed, by design: the whole download runs synchronously in `start()` (as IntelBluetoothFirmware does), with a 4 KiB kernel-allocated transfer buffer and nothing large on the stack; the firmware arrays are `const` data in the kext image.
+- The kext is still untested in the kernel. Next: boot from the USB stick and run the checks above. To bisect a boot problem: `-qcabtoff` disables only the loader.

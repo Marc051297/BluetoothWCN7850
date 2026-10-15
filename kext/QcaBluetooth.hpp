@@ -44,6 +44,7 @@ private:
     IOBufferMemoryDescriptor *mBuf = nullptr;
     thread_call_t mResumeCall = nullptr;
     bool mWasOff = false;
+    bool mStopping = false;
 
     IOReturn vendorIn(uint8_t request, void *buf, uint16_t len);
     IOReturn readVersion(qca_version &ver, uint8_t &status);
