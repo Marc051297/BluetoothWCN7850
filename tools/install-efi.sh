@@ -2,7 +2,8 @@
 # Install QcaBluetooth.kext + BlueToolFixup.kext into the OpenCore EFI and
 # patch config.plist as described in docs/04-bringup.md.  Run with sudo:
 #
-#   sudo bash tools/install-efi.sh [disk1s2]
+#   sudo bash tools/install-efi.sh <diskNsM>        (the USB stick's EFI; find it by GUID 1623DE29-…, numbers move)
+#   QCABT_PATCHER=debug sudo -E bash tools/install-efi.sh <diskNsM>   (debug IntelBTPatcher + -ibtcompatdbg)
 #
 # Idempotent: re-running replaces the kexts and leaves an already patched
 # config.plist alone.  A backup of config.plist is kept next to it.
@@ -12,9 +13,15 @@ DISK="${1:-disk1s2}"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD="$REPO/build"
 
+# IntelBTPatcher (OpenIntelWireless, built by scripts/build-intelbtpatcher.sh) is installed too: bluetoothd's LE scan
+# setup fails on this controller without its LE Set Random Address shim. QCABT_PATCHER=debug installs the debug build
+# (and adds -ibtcompatdbg, which hex-dumps every HCI command into the kernel log, sudo dmesg); default is the release build.
+PATCHER_SRC="$BUILD/IntelBTPatcher${QCABT_PATCHER:+-$QCABT_PATCHER}.kext"
+[ "${QCABT_PATCHER:-}" = release ] && PATCHER_SRC="$BUILD/IntelBTPatcher.kext"
 for k in QcaBluetooth BlueToolFixup; do
     [ -x "$BUILD/$k.kext/Contents/MacOS/$k" ] || { echo "missing $BUILD/$k.kext"; exit 1; }
 done
+[ -x "$PATCHER_SRC/Contents/MacOS/IntelBTPatcher" ] || { echo "missing $PATCHER_SRC (run scripts/build-intelbtpatcher.sh)"; exit 1; }
 
 if [ "$(diskutil info "$DISK" | awk -F': *' '/Mounted/{print $2}')" != "Yes" ]; then
     diskutil mount "$DISK"
@@ -35,10 +42,14 @@ for k in QcaBluetooth BlueToolFixup; do
     cp -R "$BUILD/$k.kext" "$OC/Kexts/$k.kext"
     echo "copied $k.kext"
 done
+rm -rf "$OC/Kexts/IntelBTPatcher.kext"
+cp -R "$PATCHER_SRC" "$OC/Kexts/IntelBTPatcher.kext"
+echo "copied IntelBTPatcher.kext from $PATCHER_SRC"
 
-python3 - "$CFG" <<'PY'
+python3 - "$CFG" "${QCABT_PATCHER:-release}" <<'PY'
 import plistlib, sys
 path = sys.argv[1]
+patcher_debug = sys.argv[2] == 'debug'
 with open(path, 'rb') as f:
     cfg = plistlib.load(f)
 
@@ -63,8 +74,13 @@ if 'QcaBluetooth.kext' not in names:
     add.insert(i, entry('QcaBluetooth', 'WCN7850 Bluetooth firmware loader (0.1.0)'))
     names.insert(i, 'QcaBluetooth.kext')
     changed.append('Kernel->Add QcaBluetooth after BlueToolFixup')
+if 'IntelBTPatcher.kext' not in names:
+    i = names.index('BlueToolFixup.kext') + 1
+    add.insert(i, entry('IntelBTPatcher', 'LE Set Random Address shim for bluetoothd (OpenIntelWireless 2.5.0, built from source)'))
+    names.insert(i, 'IntelBTPatcher.kext')
+    changed.append('Kernel->Add IntelBTPatcher after BlueToolFixup')
 for e in add:
-    if e['BundlePath'] in ('BlueToolFixup.kext', 'QcaBluetooth.kext') and not e.get('Enabled'):
+    if e['BundlePath'] in ('BlueToolFixup.kext', 'QcaBluetooth.kext', 'IntelBTPatcher.kext') and not e.get('Enabled'):
         e['Enabled'] = True
         changed.append(f"enabled {e['BundlePath']}")
 
@@ -76,6 +92,13 @@ args = nv_add.get('boot-args', '')
 if '-btlfxboardid' not in args.split():
     nv_add['boot-args'] = (args + ' -btlfxboardid').strip()
     changed.append('boot-args += -btlfxboardid')
+args = nv_add.get('boot-args', '')
+if patcher_debug and '-ibtcompatdbg' not in args.split():
+    nv_add['boot-args'] = (args + ' -ibtcompatdbg').strip()
+    changed.append('boot-args += -ibtcompatdbg')
+if not patcher_debug and '-ibtcompatdbg' in args.split():
+    nv_add['boot-args'] = ' '.join(a for a in args.split() if a != '-ibtcompatdbg')
+    changed.append('boot-args -= -ibtcompatdbg')
 if nv_add.get('bluetoothExternalDongleFailed') != b'\x00':
     nv_add['bluetoothExternalDongleFailed'] = b'\x00'
     changed.append('NVRAM Add bluetoothExternalDongleFailed=00')
@@ -104,5 +127,5 @@ PY
 
 plutil -lint "$CFG"
 if OCV="$(command -v ocvalidate 2>/dev/null)"; then "$OCV" "$CFG" || true; fi
-ls -la "$OC/Kexts" | grep -E 'Lilu|BlueTool|QcaBluetooth'
+ls -la "$OC/Kexts" | grep -E 'Lilu|BlueTool|QcaBluetooth|IntelBTPatcher'
 echo "done; reboot to test"
