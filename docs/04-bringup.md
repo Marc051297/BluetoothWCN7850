@@ -16,7 +16,9 @@ Loading a kext and writing the EFI partition both need `sudo`, which this sessio
 
 ## Install (OpenCore)
 
-The EFI partition of the macOS disk is `disk1s2` (not auto-mounted; `sudo diskutil mount disk1s2`).
+The machine does **not** boot OpenCore from the macOS disk. `nvram 4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:boot-path` names a USB device with partition GUID `1623DE29-…`, which is `disk3s1` (the USB stick's EFI); `disk1s2` is the NVMe's EFI and is not the one in use. Always check `boot-path` before writing anything.
+
+`tools/install-efi.sh <disk>` does steps 1-3 below (run with `sudo`; it mounts the partition, backs up `config.plist` next to itself and into `build/`, copies the kexts and patches the plist idempotently).
 
 1. Copy `build/QcaBluetooth.kext` and `build/BlueToolFixup.kext` to `EFI/OC/Kexts/`.
 2. `config.plist → Kernel → Add`: `BlueToolFixup.kext` **after** `Lilu.kext`, then `QcaBluetooth.kext` (order between the two does not matter; the loader does not depend on Lilu). Executable path `Contents/MacOS/<name>`, plist path `Contents/Info.plist`.
