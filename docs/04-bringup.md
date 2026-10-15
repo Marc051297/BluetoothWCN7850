@@ -76,3 +76,13 @@ Should now report a controller with a real address, `Transport: USB`, vendor `0x
 
 - Wake from sleep: the kext tries a reload if it can open the device after an off→on transition; it probably cannot while `bluetoothd` holds it. If Bluetooth dies after sleep, this is why. A fix would need either a re-enumeration after wake or cooperation from `bluetoothd`.
 - Only `0489:e10a` with ROM `0x00190200` is tested. The other WCN785x ids in `Info.plist` are from btusb and share the firmware; WCN6855 would need its own files added to `scripts/fetch-firmware.sh`.
+
+## Boot test log
+
+### 2026-10-15 18:21, install
+
+`sudo bash tools/install-efi.sh disk3s1` on the USB stick's EFI: kexts copied, `config.plist` patched (backup `config.plist.bak-20261015-182132`), verified on the mounted volume.
+
+### 2026-10-15 18:25, first reboot: wrong EFI, no test
+
+The machine came back from the **NVMe EFI** (`boot-path` GUID `9232EEDC-…` = `disk1s2`), not the USB stick. Consequences seen: `-btlfxboardid` absent from `boot-args`, neither kext loaded, no `QcaBluetooth` log lines, and `0489:e10a` not enumerated at all (the NVMe config has no USBToolBox port map, so the Bluetooth port is behind the 15-port limit). Oddly `bluetoothExternalDongleFailed` and `bluetoothInternalControllerInfo` were present in NVRAM anyway. Nothing about the kext was learned. Needs a boot from the USB stick (pick it in the OpenCore picker).
