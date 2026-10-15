@@ -1,0 +1,8 @@
+firmware/dl/
+kext/FwData.cpp
+build/
+build-debug/
+deps/
+tools/qcabt
+tools/usbdesc
+.DS_Store
