@@ -4,14 +4,15 @@
 <dict>
 	<!-- bluetoothd picks its HCI transport from the board-id (MacPro7,1 = UART) unless BT_HCI_TRANSPORT is set in its
 	     environment. BlueToolFixup's board-id rewrite has nothing to rewrite in Tahoe's bluetoothd, so this daemon sets the
-	     variable in launchd's system domain at boot and restarts bluetoothd once so it picks it up. -->
+	     variable in launchd's system domain at boot and TERMs bluetoothd once so its respawn picks it up (kickstart -k blocks while
+	     launchd throttles a looping service). -->
 	<key>Label</key>
 	<string>com.razvanccr.qcabt-transport</string>
 	<key>ProgramArguments</key>
 	<array>
 		<string>/bin/sh</string>
 		<string>-c</string>
-		<string>/bin/launchctl setenv BT_HCI_TRANSPORT USB; /bin/sleep 2; /bin/launchctl kickstart -k system/com.apple.bluetoothd</string>
+		<string>/bin/launchctl setenv BT_HCI_TRANSPORT USB; /bin/sleep 2; /bin/launchctl kill TERM system/com.apple.bluetoothd 2>/dev/null; exit 0</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
