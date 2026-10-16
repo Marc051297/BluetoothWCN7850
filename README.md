@@ -10,6 +10,8 @@ Bluetooth for the **Qualcomm WCN7850** (FastConnect 7800) on macOS. The chip's B
 
 ## Install
 
+**Before anything else: USB port mapping.** macOS only uses the first 15 ports of each USB controller, and on this board the Bluetooth controller sits on port 17 of the chipset controller (`XH00`), so without a port map the device does not even appear in `ioreg`. Make a map with [USBToolBox](https://github.com/USBToolBox/tool) (or USBMap) that includes the Bluetooth port; check with `ioreg -p IOUSB` that a device `0489:e10a` is listed before installing anything from here.
+
 1. `Kernel → Add`: `Lilu.kext`, then `BlueToolFixup.kext` and `IntelBTPatcher.kext` (from the zip; both are Lilu plug-ins), then `BluetoothWCN7850.kext`.
 2. `NVRAM → Add → 7C436110-AB2A-4BBB-A880-FE41995C9F82`: add `-btlfxboardid` to `boot-args`; `bluetoothExternalDongleFailed` = `00`; `bluetoothInternalControllerInfo` = 14 zero bytes. Put the same two keys under `NVRAM → Delete`.
 3. Reboot.
