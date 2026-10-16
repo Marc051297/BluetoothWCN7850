@@ -2,7 +2,7 @@
 
 A macOS firmware loader for the Bluetooth half of the **Qualcomm WCN7850** (FastConnect 7800), the combo chip on my ASUS X870 board. The Wi-Fi half is a PCIe device and lives in [QwzMac](../QwzMac); the Bluetooth half is a separate USB device, `0489:e10a`, that boots with nothing but a ROM and needs a RAM patch and an NVM blob pushed into it before it is a usable HCI controller. Linux does that in `btusb.c`; macOS has no idea what the device is. This does the same download from a kext, and leaves the rest to Apple's own Bluetooth stack plus [BlueToolFixup](https://github.com/acidanthera/BrcmPatchRAM), the way Intel and Broadcom USB controllers work on Hackintoshes since macOS 12.
 
-> **Status (2026-10-15): firmware download proven from userspace, kext built but not yet booted.** `tools/qcabt load` takes the chip from its ROM build to patch build `0x8567` with both status bits set. The kext does the same thing at device match time; it has not been installed and rebooted with yet, and `bluetoothd` has not been seen talking to the controller. The step-by-step is in [docs/04-bringup.md](docs/04-bringup.md).
+> **Status (2026-10-16): Bluetooth is on.** The kext loads the firmware at boot, and with BlueToolFixup, IntelBTPatcher and a small launch agent macOS's own stack drives the controller: `system_profiler` shows it with its real address, state On, firmware v34151 (the patch build), transport USB. Pairing, audio, cold boot and sleep/wake are not verified yet. The whole bring-up, including the four wrong turns, is in [docs/04-bringup.md](docs/04-bringup.md).
 
 ## What is in here
 
@@ -39,7 +39,7 @@ scripts/build-bluetoolfixup.sh
 
 ## Installing
 
-Both kexts go into OpenCore's `Kernel → Add` (BlueToolFixup after Lilu), plus the boot argument `-btlfxboardid` and two NVRAM variables for `bluetoothd`. `-qcabtoff` disables the loader, `qcabt_stage=<n>` parks it before stage n; the driver publishes its log and progress as `Log` and `Stage` in the I/O Registry (`ioreg -l -w0 -c QcaBluetoothFirmware`), because an OpenCore-injected kext's `IOLog` never reaches the unified log. The exact entries and what to check after the reboot are in [docs/04-bringup.md](docs/04-bringup.md).
+Three kexts go into OpenCore's `Kernel → Add` (BlueToolFixup and IntelBTPatcher after Lilu, QcaBluetooth anywhere), plus two NVRAM variables for `bluetoothd`; `tools/install-efi.sh` does that. Then `tools/install-transport-daemon.sh` installs a per-user launch agent that sets `BT_HCI_TRANSPORT=USB` in your login session's launchd domain, which is what makes `bluetoothd` look for a USB dongle on a MacPro7,1 SMBIOS (Tahoe's `bluetoothd` no longer has the string BlueToolFixup used to patch for that). `-qcabtoff` disables the loader, `qcabt_stage=<n>` parks it before stage n; the driver publishes its log and progress as `Log` and `Stage` in the I/O Registry (`ioreg -l -w0 -c QcaBluetoothFirmware`), because an OpenCore-injected kext's `IOLog` never reaches the unified log. The exact entries and what to check after the reboot are in [docs/04-bringup.md](docs/04-bringup.md).
 
 ## How it works, in one paragraph
 

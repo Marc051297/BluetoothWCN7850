@@ -131,3 +131,23 @@ What was ruled out, one runtime test each: the `bluetoothExternalDongleFailed` f
 Still open: the `reason=718` restart loop after `Local Device Address` (LE scan setup), seen again at 03:33 with IntelBTPatcher **disabled**. Next boot: patcher enabled (`-ibtcompatoff` removed, `-ibtcompatdbg` kept) to see whether its LE Set Random Address shim stops it.
 
 Notes: the controller's USB location changed between boots (`0x02F00000` → `0x01F00000`, the XHCI enumeration order moved); `bluetoothd` does not care. Also the user's board is the MSI MAG X870 Tomahawk per the USB map comment in the config, not ASUS as first written in these notes.
+
+## 2026-10-16 03:39: **Bluetooth on** (third boot: loader + BlueToolFixup + IntelBTPatcher + user agent)
+
+First `bluetoothd` instance after boot: `HCI Transport is set to USB` → `BlueTool finished running boot script` → `[bm3_usb][GetProductAndVendorID] -- Use external Bluetooth USB Host Controller` → `Local Device Address ac f2 3c 8d a6 9e` → `STACK_READY/StackStarted`, and **no `reason=718` restart** this time: with IntelBTPatcher enabled the LE scan setup goes through, and the daemon has been the same process since. `system_profiler SPBluetoothDataType`:
+
+```
+Address: AC:F2:3C:8D:A6:9E   State: On   Chipset: THIRD_PARTY_DONGLE
+Firmware Version: v34151 c0  (0x8567 = the loaded rampatch build)   Transport: USB
+```
+
+LE scans run for sharingd/studentd and friends. Non-fatal errors logged at start, worth remembering if something misbehaves: `OI_HCICMD_ReadLocalVersionInformation failed: STATUS 408, but we move forward`, `Write Secure Connection failed STATUS 712`, `LE_InitMultipleAdvertising failed with status 152` (Apple-specific feature probes).
+
+So the working recipe on macOS 26.7.1 with a MacPro7,1 SMBIOS is:
+
+1. `QcaBluetooth.kext` (firmware at match time),
+2. `BlueToolFixup.kext` 2.7.3 (vendor whitelist; its board-id and chipset patches have nothing to match on this build but do no harm),
+3. `IntelBTPatcher.kext` 2.5.0 (LE Set Random Address before the first LE Set Scan Parameters; vendor-agnostic),
+4. the per-user LaunchAgent setting `BT_HCI_TRANSPORT=USB` in the gui domain (the two Bluetooth NVRAM variables from the BrcmPatchRAM README are in the config too; `-btlfxboardid` is in boot-args but has no effect on 26.7.1).
+
+Not verified yet: pairing/audio/HID in use, a cold boot (every boot so far found the firmware still in the chip's RAM, so the kext's download path has only run from userspace), sleep/wake. Cleanup for daily use: `QCABT_PATCHER=release` install and drop `-ibtcompatdbg`.
