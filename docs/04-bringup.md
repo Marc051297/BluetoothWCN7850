@@ -151,3 +151,9 @@ So the working recipe on macOS 26.7.1 with a MacPro7,1 SMBIOS is:
 4. the per-user LaunchAgent setting `BT_HCI_TRANSPORT=USB` in the gui domain (the two Bluetooth NVRAM variables from the BrcmPatchRAM README are in the config too; `-btlfxboardid` is in boot-args but has no effect on 26.7.1).
 
 Not verified yet: pairing/audio/HID in use, a cold boot (every boot so far found the firmware still in the chip's RAM, so the kext's download path has only run from userspace), sleep/wake. Cleanup for daily use: `QCABT_PATCHER=release` install and drop `-ibtcompatdbg`.
+
+## Next: drop the launch agent (prepared 2026-10-16 03:55, untested)
+
+The agent is a workaround for BlueToolFixup's `-btlfxboardid` patch finding nothing on Tahoe (its search string is the MacPro6,1 board-id, which macOS 26 dropped). `scripts/build-bluetoolfixup.sh` now rewrites that first table entry to `Mac-9F18E312C5C2BF0B` (iMac14,2), which is still in both `bluetoothd` and `BlueTool` on 26.7.1, before building. Expected on the next boot, with the agent removed (`tools/install-transport-daemon.sh --remove`) and `-btlfxboardid` still in boot-args: `FindTransportType -- USB Transport` from the board-id itself, no `BT_HCI_TRANSPORT` anywhere, and the stack init's "not set, reading plist" branch running the external-dongle detection as in the working run. If it holds, the agent goes away and this is the change to send upstream to acidanthera.
+
+Test sequence: `sudo bash tools/install-efi.sh <stick>` (copies the new BlueToolFixup), `bash tools/install-transport-daemon.sh --remove`, reboot from the stick, then `log show --last 5m --predicate 'process == "bluetoothd" AND (eventMessage CONTAINS "FindTransportType" OR eventMessage CONTAINS "Use external" OR eventMessage CONTAINS "Local Device Address")'`.
