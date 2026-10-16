@@ -84,7 +84,7 @@ if 'BluetoothWCN7850.kext' not in names:
     i = names.index('BlueToolFixup.kext') + 1
     add.insert(i, entry('BluetoothWCN7850', comments['BluetoothWCN7850.kext']))
     names.insert(i, 'BluetoothWCN7850.kext')
-    changed.append('Kernel->Add QcaBluetooth after BlueToolFixup')
+    changed.append('Kernel->Add BluetoothWCN7850 after BlueToolFixup')
 if 'IntelBTPatcher.kext' not in names:
     i = names.index('BlueToolFixup.kext') + 1
     add.insert(i, entry('IntelBTPatcher', comments['IntelBTPatcher.kext']))
