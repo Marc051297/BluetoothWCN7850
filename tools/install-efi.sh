@@ -1,6 +1,6 @@
 #!/bin/bash
-# Install QcaBluetooth.kext + BlueToolFixup.kext into the OpenCore EFI and
-# patch config.plist as described in docs/04-bringup.md.  Run with sudo:
+# Install QcaBluetooth.kext, BlueToolFixup.kext and IntelBTPatcher.kext into an OpenCore EFI
+# and patch config.plist as described in docs/04-bringup.md.  Run with sudo:
 #
 #   sudo bash tools/install-efi.sh <diskNsM>        (the USB stick's EFI; find it by GUID 1623DE29-…, numbers move)
 #   QCABT_PATCHER=debug sudo -E bash tools/install-efi.sh <diskNsM>   (debug IntelBTPatcher + -ibtcompatdbg)
@@ -46,10 +46,17 @@ rm -rf "$OC/Kexts/IntelBTPatcher.kext"
 cp -R "$PATCHER_SRC" "$OC/Kexts/IntelBTPatcher.kext"
 echo "copied IntelBTPatcher.kext from $PATCHER_SRC"
 
-python3 - "$CFG" "${QCABT_PATCHER:-release}" <<'PY'
+QCABT_VERSION=$(cat "$REPO/VERSION")
+python3 - "$CFG" "${QCABT_PATCHER:-release}" "$QCABT_VERSION" <<'PY'
 import plistlib, sys
 path = sys.argv[1]
 patcher_debug = sys.argv[2] == 'debug'
+version = sys.argv[3]
+comments = {
+    'BlueToolFixup.kext': 'BlueToolFixup 2.7.3 with the Tahoe board-id fix (QcaBluetooth build): lets bluetoothd use a third-party USB controller',
+    'IntelBTPatcher.kext': 'IntelBTPatcher 2.5.0 (OpenIntelWireless, built from source): LE Set Random Address shim, needed by any third-party controller',
+    'QcaBluetooth.kext': f'QcaBluetooth {version}: WCN7850 Bluetooth firmware loader (0489:e10a)',
+}
 with open(path, 'rb') as f:
     cfg = plistlib.load(f)
 
@@ -66,23 +73,27 @@ def entry(name, comment):
 changed = []
 if 'BlueToolFixup.kext' not in names:
     i = names.index('Lilu.kext') + 1
-    add.insert(i, entry('BlueToolFixup', 'Lets bluetoothd use the WCN7850 USB controller (2.7.3, built from source)'))
+    add.insert(i, entry('BlueToolFixup', comments['BlueToolFixup.kext']))
     names.insert(i, 'BlueToolFixup.kext')
     changed.append('Kernel->Add BlueToolFixup after Lilu')
 if 'QcaBluetooth.kext' not in names:
     i = names.index('BlueToolFixup.kext') + 1
-    add.insert(i, entry('QcaBluetooth', 'WCN7850 Bluetooth firmware loader (0.1.0)'))
+    add.insert(i, entry('QcaBluetooth', comments['QcaBluetooth.kext']))
     names.insert(i, 'QcaBluetooth.kext')
     changed.append('Kernel->Add QcaBluetooth after BlueToolFixup')
 if 'IntelBTPatcher.kext' not in names:
     i = names.index('BlueToolFixup.kext') + 1
-    add.insert(i, entry('IntelBTPatcher', 'LE Set Random Address shim for bluetoothd (OpenIntelWireless 2.5.0, built from source)'))
+    add.insert(i, entry('IntelBTPatcher', comments['IntelBTPatcher.kext']))
     names.insert(i, 'IntelBTPatcher.kext')
     changed.append('Kernel->Add IntelBTPatcher after BlueToolFixup')
 for e in add:
-    if e['BundlePath'] in ('BlueToolFixup.kext', 'QcaBluetooth.kext', 'IntelBTPatcher.kext') and not e.get('Enabled'):
-        e['Enabled'] = True
-        changed.append(f"enabled {e['BundlePath']}")
+    if e['BundlePath'] in comments:
+        if not e.get('Enabled'):
+            e['Enabled'] = True
+            changed.append(f"enabled {e['BundlePath']}")
+        if e.get('Comment') != comments[e['BundlePath']]:
+            e['Comment'] = comments[e['BundlePath']]
+            changed.append(f"comment {e['BundlePath']}")
 
 GUID = '7C436110-AB2A-4BBB-A880-FE41995C9F82'
 nv_add = cfg['NVRAM'].setdefault('Add', {}).setdefault(GUID, {})
