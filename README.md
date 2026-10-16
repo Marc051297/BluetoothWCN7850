@@ -1,4 +1,4 @@
-# QcaBluetooth
+# QcaBluetooth: BluetoothWCN7850.kext
 
 A macOS firmware loader for the Bluetooth half of the **Qualcomm WCN7850** (FastConnect 7800), the combo chip on my MSI MAG X870 Tomahawk board. The Wi-Fi half is a PCIe device and lives in [QwzMac](../QwzMac); the Bluetooth half is a separate USB device, `0489:e10a`, that boots with nothing but a ROM and needs a RAM patch and an NVM blob pushed into it before it is a usable HCI controller. Linux does that in `btusb.c`; macOS has no idea what the device is. This does the same download from a kext, and leaves the rest to Apple's own Bluetooth stack plus [BlueToolFixup](https://github.com/acidanthera/BrcmPatchRAM), the way Intel and Broadcom USB controllers work on Hackintoshes since macOS 12.
 
@@ -8,7 +8,7 @@ A macOS firmware loader for the Bluetooth half of the **Qualcomm WCN7850** (Fast
 
 | | |
 |---|---|
-| `kext/` | `QcaBluetooth.kext` source: matches the USB device, loads the firmware in `start()`, closes the device, done. ~300 lines. |
+| `kext/` | `BluetoothWCN7850.kext` source: matches the USB device, loads the firmware in `start()`, closes the device, done. ~300 lines. |
 | `tools/qcabt.c` | The same download from userspace with IOUSBLib. `qcabt info` shows the chip's ROM/patch version and status bits; `qcabt load` loads what is missing. This is the bring-up and diagnosis tool. |
 | `tools/usbdesc.c` | Dumps a USB device's descriptors without opening it. |
 | `scripts/fetch-firmware.sh` | Fetches the firmware from linux-firmware (pinned release and checksums) and embeds it into the kext. Not committed: it is Qualcomm's, redistributable in binary form. |
@@ -41,7 +41,7 @@ scripts/build-bluetoolfixup.sh
 scripts/build-intelbtpatcher.sh
 ```
 
-`build/QcaBluetooth.kext`, `build/BlueToolFixup.kext` and `build/IntelBTPatcher.kext` are the results. MacKernelSDK, BrcmPatchRAM, Lilu and IntelBluetoothFirmware are cloned into `deps/` on first use.
+`build/BluetoothWCN7850.kext`, `build/BlueToolFixup.kext` and `build/IntelBTPatcher.kext` are the results. MacKernelSDK, BrcmPatchRAM, Lilu and IntelBluetoothFirmware are cloned into `deps/` on first use.
 
 ## Installing
 
@@ -49,7 +49,7 @@ scripts/build-intelbtpatcher.sh
 sudo bash tools/install-efi.sh diskNsM
 ```
 
-with the EFI partition OpenCore boots from (`nvram 4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:boot-path` says which; partition numbers move between boots). Three kexts go into `Kernel → Add` (BlueToolFixup and IntelBTPatcher after Lilu, QcaBluetooth anywhere), plus the boot argument `-btlfxboardid` and two NVRAM variables for `bluetoothd`; the script does all of it and keeps a backup of `config.plist`. Then reboot. The BlueToolFixup built here carries a one-line fix without which `-btlfxboardid` does nothing on macOS 26 (the board-id string it searches for belonged to the MacPro6,1, which Tahoe dropped); on a MacPro7,1 SMBIOS that patch is what makes `bluetoothd` look for a USB dongle instead of a UART. No launch agent or daemon is needed; `tools/install-transport-daemon.sh` is kept only as a fallback. `-qcabtoff` disables the loader, `qcabt_stage=<n>` parks it before stage n; the driver publishes its log and progress as `Log` and `Stage` in the I/O Registry (`ioreg -l -w0 -c QcaBluetoothFirmware`), because an OpenCore-injected kext's `IOLog` never reaches the unified log. The exact entries and what to check after the reboot are in [docs/04-bringup.md](docs/04-bringup.md).
+with the EFI partition OpenCore boots from (`nvram 4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:boot-path` says which; partition numbers move between boots). Three kexts go into `Kernel → Add` (BlueToolFixup and IntelBTPatcher after Lilu, BluetoothWCN7850 anywhere), plus the boot argument `-btlfxboardid` and two NVRAM variables for `bluetoothd`; the script does all of it and keeps a backup of `config.plist`. Then reboot. The BlueToolFixup built here carries a one-line fix without which `-btlfxboardid` does nothing on macOS 26 (the board-id string it searches for belonged to the MacPro6,1, which Tahoe dropped); on a MacPro7,1 SMBIOS that patch is what makes `bluetoothd` look for a USB dongle instead of a UART. No launch agent or daemon is needed; `tools/install-transport-daemon.sh` is kept only as a fallback. `-qcabtoff` disables the loader, `qcabt_stage=<n>` parks it before stage n; the driver publishes its log and progress as `Log` and `Stage` in the I/O Registry (`ioreg -r -c BluetoothWCN7850 -w0`), because an OpenCore-injected kext's `IOLog` never reaches the unified log. The exact entries and what to check after the reboot are in [docs/04-bringup.md](docs/04-bringup.md).
 
 ## How it works, in one paragraph
 

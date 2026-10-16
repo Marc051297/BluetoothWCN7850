@@ -1,7 +1,7 @@
-// QcaBluetooth: loads the RAM patch and NVM into a Qualcomm WCN785x/WCN6855 Bluetooth USB controller
+// BluetoothWCN7850 (project QcaBluetooth): loads the RAM patch and NVM into a Qualcomm WCN785x/WCN6855 Bluetooth USB controller
 // at device match time, so that bluetoothd (with BlueToolFixup) finds a working HCI controller.
-#ifndef QCABLUETOOTH_HPP
-#define QCABLUETOOTH_HPP
+#ifndef BLUETOOTHWCN7850_HPP
+#define BLUETOOTHWCN7850_HPP
 
 #include <IOKit/IOService.h>
 #include <IOKit/IOBufferMemoryDescriptor.h>
@@ -32,8 +32,8 @@ struct qca_device_info {
 // 1 open + version read, 2 set configuration + bulk pipe, 3 rampatch download, 4 NVM download.
 enum { kStageOpen = 1, kStageConfigure = 2, kStageRampatch = 3, kStageNvm = 4 };
 
-class QcaBluetoothFirmware : public IOService {
-    OSDeclareDefaultStructors(QcaBluetoothFirmware)
+class BluetoothWCN7850 : public IOService {
+    OSDeclareDefaultStructors(BluetoothWCN7850)
 
 public:
     IOService *probe(IOService *provider, SInt32 *score) override;

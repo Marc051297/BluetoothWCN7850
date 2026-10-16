@@ -11,7 +11,7 @@ extern kern_return_t _stop(kmod_info_t *ki, void *data);
 
 #define QCABT_KMOD(name) KMOD_EXPLICIT_DECL(name, QCABT_VERSION, _start, _stop)
 __attribute__((visibility("default")))
-QCABT_KMOD(com.razvanccr.QcaBluetooth)
+QCABT_KMOD(com.razvanccr.BluetoothWCN7850)
 
 __private_extern__ kmod_start_func_t *_realmain = 0;
 __private_extern__ kmod_stop_func_t *_antimain = 0;

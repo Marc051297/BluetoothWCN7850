@@ -40,7 +40,7 @@ kextstat | grep -E 'razvanccr|BlueToolFixup|Lilu'
 ```
 
 ```bash
-ioreg -l -w0 -c QcaBluetoothFirmware | grep -E 'Log|Stage|LastResult|RomVersion|PatchVersion|"Status"|FirmwareLoaded'
+ioreg -r -c BluetoothWCN7850 -w0 | grep -E 'Log|Stage|LastResult|RomVersion|PatchVersion|"Status"|FirmwareLoaded'
 ```
 
 ```bash
@@ -165,3 +165,7 @@ Boot from the stick with the rebuilt BlueToolFixup (`f5d941bf`), the launch agen
 **09:40: pairing works.** `system_profiler` lists AirPods Pro connected through the controller (address 74:15:F5:39:F0:89, battery levels, services HFP AVRCP A2DP AACP GATT ACL, RSSI -63).
 
 **09:42: microphone is narrowband.** Voice Memos through the AirPods works but sounds muffled. `bluetoothd`: `setAudioCodec … new codec CSVD sampleRate 8000`, `[bm3_usb][OI_HciIfc_EnableSCO_USB] -- airMode = 0x02 (CVSD)`, `Advanced Transport: disabled`, and no "supports WBS" evaluation at all. macOS enables wideband speech (mSBC, `airMode 0x03`) through chip-family vendor commands (`_BCM_WriteWBSEnable`, `_ACI_WriteWBSEnable`, `_SRS_WriteWBSEnable`); for a `THIRD_PARTY_DONGLE` chipset there is none, so calls stay on 8 kHz CVSD. Known limitation of the stock stack with any non-Apple/Broadcom controller; A2DP playback (256 kbps) is unaffected. Also seen once during the SCO session: `AudioSendThread overrun (119 ms)`.
+
+## 2026-10-16 10:10: v1.0.0, kext renamed
+
+The kext is `BluetoothWCN7850.kext` (bundle `com.razvanccr.BluetoothWCN7850`, class `BluetoothWCN7850`), matching the Wi-Fi kext's `AirportWCN7850`; earlier entries above say `QcaBluetooth.kext` / `QcaBluetoothFirmware`. `tools/install-efi.sh` migrates an existing `QcaBluetooth.kext` entry in place. Boot arguments are unchanged (`-qcabtoff`, `qcabt_stage=<n>`).

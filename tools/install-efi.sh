@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install QcaBluetooth.kext, BlueToolFixup.kext and IntelBTPatcher.kext into an OpenCore EFI
+# Install BluetoothWCN7850.kext, BlueToolFixup.kext and IntelBTPatcher.kext into an OpenCore EFI
 # and patch config.plist as described in docs/04-bringup.md.  Run with sudo:
 #
 #   sudo bash tools/install-efi.sh <diskNsM>        (the USB stick's EFI; find it by GUID 1623DE29-…, numbers move)
@@ -18,7 +18,7 @@ BUILD="$REPO/build"
 # (and adds -ibtcompatdbg, which hex-dumps every HCI command into the kernel log, sudo dmesg); default is the release build.
 PATCHER_SRC="$BUILD/IntelBTPatcher${QCABT_PATCHER:+-$QCABT_PATCHER}.kext"
 [ "${QCABT_PATCHER:-}" = release ] && PATCHER_SRC="$BUILD/IntelBTPatcher.kext"
-for k in QcaBluetooth BlueToolFixup; do
+for k in BluetoothWCN7850 BlueToolFixup; do
     [ -x "$BUILD/$k.kext/Contents/MacOS/$k" ] || { echo "missing $BUILD/$k.kext"; exit 1; }
 done
 [ -x "$PATCHER_SRC/Contents/MacOS/IntelBTPatcher" ] || { echo "missing $PATCHER_SRC (run scripts/build-intelbtpatcher.sh)"; exit 1; }
@@ -37,7 +37,8 @@ cp "$CFG" "$OC/config.plist.bak-$STAMP"
 cp "$CFG" "$REPO/build/config.plist.before-$STAMP"
 echo "backup: $OC/config.plist.bak-$STAMP"
 
-for k in QcaBluetooth BlueToolFixup; do
+rm -rf "$OC/Kexts/QcaBluetooth.kext"   # the kext's name before 1.0.0
+for k in BluetoothWCN7850 BlueToolFixup; do
     rm -rf "$OC/Kexts/$k.kext"
     cp -R "$BUILD/$k.kext" "$OC/Kexts/$k.kext"
     echo "copied $k.kext"
@@ -55,12 +56,15 @@ version = sys.argv[3]
 comments = {
     'BlueToolFixup.kext': 'BlueToolFixup 2.7.3 with the Tahoe board-id fix (QcaBluetooth build): lets bluetoothd use a third-party USB controller',
     'IntelBTPatcher.kext': 'IntelBTPatcher 2.5.0 (OpenIntelWireless, built from source): LE Set Random Address shim, needed by any third-party controller',
-    'QcaBluetooth.kext': f'QcaBluetooth {version}: WCN7850 Bluetooth firmware loader (0489:e10a)',
+    'BluetoothWCN7850.kext': f'BluetoothWCN7850 {version}: WCN7850 Bluetooth firmware loader (0489:e10a)',
 }
 with open(path, 'rb') as f:
     cfg = plistlib.load(f)
 
 add = cfg['Kernel']['Add']
+for e in add:   # the kext's name before 1.0.0
+    if e['BundlePath'] == 'QcaBluetooth.kext':
+        e['BundlePath'] = 'BluetoothWCN7850.kext'; e['ExecutablePath'] = 'Contents/MacOS/BluetoothWCN7850'
 names = [e['BundlePath'] for e in add]
 if 'Lilu.kext' not in names:
     sys.exit('Lilu.kext is not in Kernel->Add; BlueToolFixup needs it')
@@ -76,10 +80,10 @@ if 'BlueToolFixup.kext' not in names:
     add.insert(i, entry('BlueToolFixup', comments['BlueToolFixup.kext']))
     names.insert(i, 'BlueToolFixup.kext')
     changed.append('Kernel->Add BlueToolFixup after Lilu')
-if 'QcaBluetooth.kext' not in names:
+if 'BluetoothWCN7850.kext' not in names:
     i = names.index('BlueToolFixup.kext') + 1
-    add.insert(i, entry('QcaBluetooth', comments['QcaBluetooth.kext']))
-    names.insert(i, 'QcaBluetooth.kext')
+    add.insert(i, entry('BluetoothWCN7850', comments['BluetoothWCN7850.kext']))
+    names.insert(i, 'BluetoothWCN7850.kext')
     changed.append('Kernel->Add QcaBluetooth after BlueToolFixup')
 if 'IntelBTPatcher.kext' not in names:
     i = names.index('BlueToolFixup.kext') + 1
@@ -138,5 +142,5 @@ PY
 
 plutil -lint "$CFG"
 if OCV="$(command -v ocvalidate 2>/dev/null)"; then "$OCV" "$CFG" || true; fi
-ls -la "$OC/Kexts" | grep -E 'Lilu|BlueTool|QcaBluetooth|IntelBTPatcher'
+ls -la "$OC/Kexts" | grep -E 'Lilu|BlueTool|BluetoothWCN7850|IntelBTPatcher'
 echo "done; reboot to test"

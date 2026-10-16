@@ -49,14 +49,14 @@ static uint16_t boardIdOf(const qca_version &v) {
 }
 
 #define super IOService
-OSDefineMetaClassAndStructors(QcaBluetoothFirmware, IOService)
+OSDefineMetaClassAndStructors(BluetoothWCN7850, IOService)
 
 static IOPMPowerState kPowerStates[2] = {
     { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 1, kIOPMPowerOn, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0 },
 };
 
-void QcaBluetoothFirmware::log(const char *fmt, ...) {
+void BluetoothWCN7850::log(const char *fmt, ...) {
     char line[200];
     __builtin_va_list ap;
     __builtin_va_start(ap, fmt);
@@ -64,7 +64,7 @@ void QcaBluetoothFirmware::log(const char *fmt, ...) {
     __builtin_va_end(ap);
     if (n < 0) return;
     if ((size_t)n >= sizeof line) n = sizeof line - 1;
-    IOLog("QcaBluetooth: %s\n", line);
+    IOLog("BluetoothWCN7850: %s\n", line);
     if (mLogLen + (size_t)n + 2 > sizeof mLog) return;   // ring is full: the first lines are the interesting ones
     memcpy(mLog + mLogLen, line, (size_t)n);
     mLogLen += (size_t)n;
@@ -73,22 +73,22 @@ void QcaBluetoothFirmware::log(const char *fmt, ...) {
     setProperty("Log", mLog);
 }
 
-void QcaBluetoothFirmware::stage(uint32_t n) { setProperty("Stage", n, 32); }
+void BluetoothWCN7850::stage(uint32_t n) { setProperty("Stage", n, 32); }
 
-IOService *QcaBluetoothFirmware::probe(IOService *provider, SInt32 *score) {
+IOService *BluetoothWCN7850::probe(IOService *provider, SInt32 *score) {
     uint32_t off = 0;
-    if (PE_parse_boot_argn("-qcabtoff", &off, sizeof off)) { IOLog("QcaBluetooth: disabled by -qcabtoff\n"); return nullptr; }
+    if (PE_parse_boot_argn("-qcabtoff", &off, sizeof off)) { IOLog("BluetoothWCN7850: disabled by -qcabtoff\n"); return nullptr; }
     if (!super::probe(provider, score)) return nullptr;
     IOUSBHostDevice *dev = OSDynamicCast(IOUSBHostDevice, provider);
     if (!dev) return nullptr;
     const StandardUSB::DeviceDescriptor *dd = dev->getDeviceDescriptor();
-    if (!dd) { IOLog("QcaBluetooth: probe: no device descriptor\n"); return nullptr; }
-    IOLog("QcaBluetooth: probe %04x:%04x bcdDevice %04x class %02x/%02x/%02x\n", USBToHost16(dd->idVendor), USBToHost16(dd->idProduct),
+    if (!dd) { IOLog("BluetoothWCN7850: probe: no device descriptor\n"); return nullptr; }
+    IOLog("BluetoothWCN7850: probe %04x:%04x bcdDevice %04x class %02x/%02x/%02x\n", USBToHost16(dd->idVendor), USBToHost16(dd->idProduct),
           USBToHost16(dd->bcdDevice), dd->bDeviceClass, dd->bDeviceSubClass, dd->bDeviceProtocol);
     return this;
 }
 
-bool QcaBluetoothFirmware::start(IOService *provider) {
+bool BluetoothWCN7850::start(IOService *provider) {
     mDevice = OSDynamicCast(IOUSBHostDevice, provider);
     if (!mDevice) return false;
     if (!super::start(provider)) return false;
@@ -115,7 +115,7 @@ bool QcaBluetoothFirmware::start(IOService *provider) {
     return true;
 }
 
-void QcaBluetoothFirmware::stop(IOService *provider) {
+void BluetoothWCN7850::stop(IOService *provider) {
     mStopping = true;
     if (mResumeCall) { thread_call_cancel_wait(mResumeCall); thread_call_free(mResumeCall); mResumeCall = nullptr; }
     closeBulk();
@@ -125,7 +125,7 @@ void QcaBluetoothFirmware::stop(IOService *provider) {
     super::stop(provider);
 }
 
-IOReturn QcaBluetoothFirmware::setPowerState(unsigned long state, IOService *) {
+IOReturn BluetoothWCN7850::setPowerState(unsigned long state, IOService *) {
     if (state == 0) mWasOff = true;
     else if (mWasOff) {
         mWasOff = false;
@@ -139,14 +139,14 @@ IOReturn QcaBluetoothFirmware::setPowerState(unsigned long state, IOService *) {
     return kIOPMAckImplied;
 }
 
-void QcaBluetoothFirmware::resumeThread(thread_call_param_t owner, thread_call_param_t) {
-    QcaBluetoothFirmware *me = static_cast<QcaBluetoothFirmware *>(owner);
+void BluetoothWCN7850::resumeThread(thread_call_param_t owner, thread_call_param_t) {
+    BluetoothWCN7850 *me = static_cast<BluetoothWCN7850 *>(owner);
     if (!me->mStopping && !me->isInactive() && me->mDevice && !me->mDevice->isInactive()) me->loadAndPublish("wake");
     me->release();
 }
 
 // Open the device, run the download if the status bits say it is needed, publish the result, close the device.
-void QcaBluetoothFirmware::loadAndPublish(const char *why) {
+void BluetoothWCN7850::loadAndPublish(const char *why) {
     if (!mDevice || mDevice->isInactive()) { LOG("%s: device is gone", why); return; }
     setProperty("LastAttempt", why);
     if (mStageLimit < kStageOpen) { LOG("%s: parked before stage %u", why, kStageOpen); return; }
@@ -175,18 +175,18 @@ void QcaBluetoothFirmware::loadAndPublish(const char *why) {
     }
 }
 
-bool QcaBluetoothFirmware::openCtrl() {
+bool BluetoothWCN7850::openCtrl() {
     mCtrl = mDevice->createIOBuffer(kIODirectionInOut, QCA_CTRL_BUF_LEN);
     if (!mCtrl) { LOG("cannot allocate the control buffer"); return false; }
     if (mCtrl->prepare() != kIOReturnSuccess) { LOG("cannot prepare the control buffer"); OSSafeReleaseNULL(mCtrl); return false; }
     return true;
 }
 
-void QcaBluetoothFirmware::closeCtrl() {
+void BluetoothWCN7850::closeCtrl() {
     if (mCtrl) { mCtrl->complete(); OSSafeReleaseNULL(mCtrl); }
 }
 
-IOReturn QcaBluetoothFirmware::vendorIn(uint8_t request, void *buf, uint16_t len) {
+IOReturn BluetoothWCN7850::vendorIn(uint8_t request, void *buf, uint16_t len) {
     if (len > QCA_CTRL_BUF_LEN) return kIOReturnBadArgument;
     StandardUSB::DeviceRequest rq;
     rq.bmRequestType = makeDeviceRequestbmRequestType(kRequestDirectionIn, kRequestTypeVendor, kRequestRecipientDevice);
@@ -198,7 +198,7 @@ IOReturn QcaBluetoothFirmware::vendorIn(uint8_t request, void *buf, uint16_t len
     return ret;
 }
 
-IOReturn QcaBluetoothFirmware::readVersion(qca_version &ver, uint8_t &status) {
+IOReturn BluetoothWCN7850::readVersion(qca_version &ver, uint8_t &status) {
     IOReturn ret = vendorIn(QCA_GET_TARGET_VERSION, &ver, sizeof ver);
     if (ret) { LOG("GET_TARGET_VERSION failed: 0x%08x", ret); return ret; }
     ret = vendorIn(QCA_CHECK_STATUS, &status, 1);
@@ -211,7 +211,7 @@ IOReturn QcaBluetoothFirmware::readVersion(qca_version &ver, uint8_t &status) {
 }
 
 // Configure the device and open interface 0 so bulk OUT endpoint 2 is reachable.
-bool QcaBluetoothFirmware::openBulk() {
+bool BluetoothWCN7850::openBulk() {
     if (mBulkOut) return true;
     const StandardUSB::ConfigurationDescriptor *cd = mDevice->getConfigurationDescriptor((uint8_t)0);
     if (!cd) { LOG("no configuration descriptor"); return false; }
@@ -236,14 +236,14 @@ bool QcaBluetoothFirmware::openBulk() {
     return true;
 }
 
-void QcaBluetoothFirmware::closeBulk() {
+void BluetoothWCN7850::closeBulk() {
     if (mBuf) { mBuf->complete(kIODirectionOut); OSSafeReleaseNULL(mBuf); }
     if (mBulkOut) { mBulkOut->abort(); OSSafeReleaseNULL(mBulkOut); }
     if (mInterface) { if (mInterface->isOpen(this)) mInterface->close(this); OSSafeReleaseNULL(mInterface); }
 }
 
 // Linux btusb_setup_qca_download_fw: header on EP0, body on bulk OUT 2 in 4 KiB writes.
-IOReturn QcaBluetoothFirmware::download(const uint8_t *fw, size_t len, size_t hdr) {
+IOReturn BluetoothWCN7850::download(const uint8_t *fw, size_t len, size_t hdr) {
     size_t size = len < hdr ? len : hdr;
     if (size > QCA_CTRL_BUF_LEN) return kIOReturnBadArgument;
     memcpy(mCtrl->getBytesNoCopy(), fw, size);
@@ -269,7 +269,7 @@ IOReturn QcaBluetoothFirmware::download(const uint8_t *fw, size_t len, size_t hd
 }
 
 // Linux btusb_setup_qca.
-IOReturn QcaBluetoothFirmware::setup(bool &loaded) {
+IOReturn BluetoothWCN7850::setup(bool &loaded) {
     qca_version ver; uint8_t status; char name[64];
     loaded = false;
     IOReturn ret = readVersion(ver, status);

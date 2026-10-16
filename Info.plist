@@ -5,13 +5,13 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleExecutable</key>
-	<string>QcaBluetooth</string>
+	<string>BluetoothWCN7850</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.razvanccr.QcaBluetooth</string>
+	<string>com.razvanccr.BluetoothWCN7850</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>QcaBluetooth</string>
+	<string>BluetoothWCN7850</string>
 	<key>CFBundlePackageType</key>
 	<string>KEXT</string>
 	<key>CFBundleShortVersionString</key>
@@ -24,14 +24,14 @@
 	     The driver checks the ROM version itself and only loads firmware it has embedded. -->
 	<key>IOKitPersonalities</key>
 	<dict>
-		<key>QcaBluetooth_0cf3_e700</key>
+		<key>BluetoothWCN7850_0cf3_e700</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -41,14 +41,14 @@
 			<key>idProduct</key>
 			<integer>59136</integer>
 		</dict>
-		<key>QcaBluetooth_0489_e0fc</key>
+		<key>BluetoothWCN7850_0489_e0fc</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -58,14 +58,14 @@
 			<key>idProduct</key>
 			<integer>57596</integer>
 		</dict>
-		<key>QcaBluetooth_0489_e0f3</key>
+		<key>BluetoothWCN7850_0489_e0f3</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -75,14 +75,14 @@
 			<key>idProduct</key>
 			<integer>57587</integer>
 		</dict>
-		<key>QcaBluetooth_0489_e100</key>
+		<key>BluetoothWCN7850_0489_e100</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -92,14 +92,14 @@
 			<key>idProduct</key>
 			<integer>57600</integer>
 		</dict>
-		<key>QcaBluetooth_0489_e103</key>
+		<key>BluetoothWCN7850_0489_e103</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -109,14 +109,14 @@
 			<key>idProduct</key>
 			<integer>57603</integer>
 		</dict>
-		<key>QcaBluetooth_0489_e10a</key>
+		<key>BluetoothWCN7850_0489_e10a</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -126,14 +126,14 @@
 			<key>idProduct</key>
 			<integer>57610</integer>
 		</dict>
-		<key>QcaBluetooth_0489_e10d</key>
+		<key>BluetoothWCN7850_0489_e10d</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -143,14 +143,14 @@
 			<key>idProduct</key>
 			<integer>57613</integer>
 		</dict>
-		<key>QcaBluetooth_0489_e11b</key>
+		<key>BluetoothWCN7850_0489_e11b</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -160,14 +160,14 @@
 			<key>idProduct</key>
 			<integer>57627</integer>
 		</dict>
-		<key>QcaBluetooth_0489_e11c</key>
+		<key>BluetoothWCN7850_0489_e11c</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -177,14 +177,14 @@
 			<key>idProduct</key>
 			<integer>57628</integer>
 		</dict>
-		<key>QcaBluetooth_0489_e11f</key>
+		<key>BluetoothWCN7850_0489_e11f</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -194,14 +194,14 @@
 			<key>idProduct</key>
 			<integer>57631</integer>
 		</dict>
-		<key>QcaBluetooth_0489_e141</key>
+		<key>BluetoothWCN7850_0489_e141</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -211,14 +211,14 @@
 			<key>idProduct</key>
 			<integer>57665</integer>
 		</dict>
-		<key>QcaBluetooth_0489_e14a</key>
+		<key>BluetoothWCN7850_0489_e14a</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -228,14 +228,14 @@
 			<key>idProduct</key>
 			<integer>57674</integer>
 		</dict>
-		<key>QcaBluetooth_0489_e14b</key>
+		<key>BluetoothWCN7850_0489_e14b</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -245,14 +245,14 @@
 			<key>idProduct</key>
 			<integer>57675</integer>
 		</dict>
-		<key>QcaBluetooth_0489_e14d</key>
+		<key>BluetoothWCN7850_0489_e14d</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -262,14 +262,14 @@
 			<key>idProduct</key>
 			<integer>57677</integer>
 		</dict>
-		<key>QcaBluetooth_13d3_3623</key>
+		<key>BluetoothWCN7850_13d3_3623</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -279,14 +279,14 @@
 			<key>idProduct</key>
 			<integer>13859</integer>
 		</dict>
-		<key>QcaBluetooth_13d3_3624</key>
+		<key>BluetoothWCN7850_13d3_3624</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -296,14 +296,14 @@
 			<key>idProduct</key>
 			<integer>13860</integer>
 		</dict>
-		<key>QcaBluetooth_2c7c_0130</key>
+		<key>BluetoothWCN7850_2c7c_0130</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -313,14 +313,14 @@
 			<key>idProduct</key>
 			<integer>304</integer>
 		</dict>
-		<key>QcaBluetooth_2c7c_0131</key>
+		<key>BluetoothWCN7850_2c7c_0131</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
@@ -330,14 +330,14 @@
 			<key>idProduct</key>
 			<integer>305</integer>
 		</dict>
-		<key>QcaBluetooth_2c7c_0132</key>
+		<key>BluetoothWCN7850_2c7c_0132</key>
 		<dict>
 			<key>CFBundleIdentifier</key>
-			<string>com.razvanccr.QcaBluetooth</string>
+			<string>com.razvanccr.BluetoothWCN7850</string>
 			<key>IOClass</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOMatchCategory</key>
-			<string>QcaBluetoothFirmware</string>
+			<string>BluetoothWCN7850</string>
 			<key>IOProbeScore</key>
 			<integer>4000</integer>
 			<key>IOProviderClass</key>
