@@ -169,3 +169,9 @@ Boot from the stick with the rebuilt BlueToolFixup (`f5d941bf`), the launch agen
 ## 2026-10-16 10:10: v1.0.0, kext renamed
 
 The kext is `BluetoothWCN7850.kext` (bundle `com.razvanccr.BluetoothWCN7850`, class `BluetoothWCN7850`), matching the Wi-Fi kext's `AirportWCN7850`; earlier entries above say `QcaBluetooth.kext` / `QcaBluetoothFirmware`. `tools/install-efi.sh` migrates an existing `QcaBluetooth.kext` entry in place. Boot arguments are unchanged (`-qcabtoff`, `qcabt_stage=<n>`).
+
+## 2026-10-16 09:54: "cold" boot with v1.0.0; the start-up delay explained
+
+Timeline (kernel start = 0): USB controller enumerated and `BluetoothWCN7850` published at +25 s, `start()` done in under a second; `bluetoothd` logged `Waiting for IOKitWaitQuiet()` at +45 s and `Done waiting` at +81 s, in the same millisecond as the NVIDIA kext's `NVRM-xnu: boot hold RELEASED (display armed) — WindowServer's IOKitWaitQuiet`; transport USB, BlueTool script, external dongle, `Local Device Address` and `StackStarted` all within the next second, controller `PoweredOn` at +82 s. So Bluetooth comes up together with the display: the NVIDIA driver deliberately keeps IOKit busy until WindowServer is armed, and `bluetoothd` is one of the daemons that waits for IOKit to go quiet. Not a loader issue; the loader's part of the boot is under one second.
+
+Caveat: this boot still found `status 0xe0` at match ("firmware already present"), so the chip kept its RAM through whatever happened; the kext's own download path has still not run on hardware. Either the PSU was not actually switched off, or the board keeps the controller's standby rail up. To exercise it on purpose: `tools/qcabt` cannot help while `bluetoothd` holds the device; a boot with `qcabt_stage=1` then `tools/qcabt load`... also finds firmware present. The only clean way is a real power cut (PSU switch off, 15 s, or unplug).
