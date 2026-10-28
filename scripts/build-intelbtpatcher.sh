@@ -20,7 +20,7 @@ ln -sfn "$DEPS/Lilu/Lilu/Library" Lilu.kext/Contents/Resources/Library
 ln -sfn "$DEPS/MacKernelSDK" MacKernelSDK
 for cfg in Release Debug; do
   xcodebuild -project IntelBluetoothFirmware.xcodeproj -target IntelBTPatcher -configuration $cfg \
-    CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" MACOSX_DEPLOYMENT_TARGET=10.13 -quiet
+    CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" MACOSX_DEPLOYMENT_TARGET=12.0 -quiet
 done
 rm -rf "$OUT/IntelBTPatcher.kext" "$OUT/IntelBTPatcher-debug.kext"
 cp -R build/Release/IntelBTPatcher.kext "$OUT/IntelBTPatcher.kext"
