@@ -13,10 +13,12 @@ Bluetooth for the **Qualcomm WCN7850** (FastConnect 7800) on macOS. The chip's B
 **Before anything else: USB port mapping.** macOS only uses the first 15 ports of each USB controller, and on this board the Bluetooth controller sits on port 17 of the chipset controller (`XH00`), so without a port map the device does not even appear in `ioreg`. Make a map with [USBToolBox](https://github.com/USBToolBox/tool) (or USBMap) that includes the Bluetooth port; check with `ioreg -p IOUSB` that a device `0489:e10a` is listed before installing anything from here.
 
 1. `Kernel → Add`: `Lilu.kext`, then `BlueToolFixup.kext` and `IntelBTPatcher.kext` (from the zip; both are Lilu plug-ins), then `BluetoothWCN7850.kext`.
-2. `NVRAM → Add → 7C436110-AB2A-4BBB-A880-FE41995C9F82`: add `-btlfxboardid` to `boot-args`; `bluetoothExternalDongleFailed` = `00`; `bluetoothInternalControllerInfo` = 14 zero bytes. Put the same two keys under `NVRAM → Delete`.
+2. `NVRAM → Add → 7C436110-AB2A-4BBB-A880-FE41995C9F82`: add `-btlfxboardid -btlfxlemask` to `boot-args`; `bluetoothExternalDongleFailed` = `00`; `bluetoothInternalControllerInfo` = 14 zero bytes. Put the same two keys under `NVRAM → Delete`.
 3. Reboot.
 
 Why the companions: Tahoe's `bluetoothd` boots the controller through a UART on a MacPro7,1 board-id, and only accepts Apple/Broadcom vendor ids. BlueToolFixup fixes both, but its board-id patch searched for a string macOS 26 removed, so the copy in the zip carries a one-line fix (`scripts/build-bluetoolfixup.sh`). IntelBTPatcher, despite the name, is a generic shim: without it `bluetoothd` restarts every 10 s on LE scan setup.
+
+**BLE HID devices (game controllers, mice, keyboards) need `-btlfxlemask`.** For a third-party controller `bluetoothd` sets the spec-default LE event mask, which leaves out *LE Data Length Change*, while it waits for that event before it marks the link ready: an Xbox Series controller or a BLE mouse connects, then spins forever without pairing. The BlueToolFixup built by `scripts/build-bluetoolfixup.sh` carries `patches/bluetoolfixup-le-event-mask.patch`, which widens the mask when `-btlfxlemask` is in the boot-args (details in [docs/04-bringup.md](docs/04-bringup.md)). Some mice also change their address every minute or so while in pairing mode, faster than you can click Connect; `tools/pair-mouse` connects within a second of the device appearing and lets macOS pair it.
 
 ## What does not work, or is not tested
 

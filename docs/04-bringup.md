@@ -177,3 +177,15 @@ Timeline (kernel start = 0): USB controller enumerated and `BluetoothWCN7850` pu
 Caveat: this boot still found `status 0xe0` at match ("firmware already present"), so the chip kept its RAM through whatever happened; the kext's own download path has still not run on hardware. Either the PSU was not actually switched off, or the board keeps the controller's standby rail up. To exercise it on purpose: `tools/qcabt` cannot help while `bluetoothd` holds the device; a boot with `qcabt_stage=1` then `tools/qcabt load`... also finds firmware present. The only clean way is a real power cut (PSU switch off, 15 s, or unplug).
 
 **09:58: installed on the NVMe EFI** (`disk0s2`, GUID `9232EEDC-…`) with `tools/install-efi.sh`: same three kexts as the stick (hashes verified), `-btlfxboardid`, both NVRAM keys; backup `config.plist.bak-20261016-095…` next to it. First normal boot without the stick still to be confirmed.
+
+## 2026-10-26: BLE HID devices connect but never pair (`-btlfxlemask`)
+
+Symptom: an Xbox Series controller (BLE HID, MediaTek radio, LMP 8) shows up in Bluetooth Settings; Connect spins forever. `bluetoothd` logs `Outgoing LE Connection complete … status 0`, `Remote Features: … EDL [remote 1, local 1]`, and then nothing: no `LE Link Ready`, no GATT, no SMP.
+
+Comparison with a genuine MacBook pairing the same controller: after *Remote Features* the MacBook gets LE meta subevent `0x07` (`Data Length Changed … Tx [27 -> 251]`) 60 ms later, then `LE Link Ready`, `BTLEServer` claims the device, `HIDGameControllerConnected … isn't paired yet`, `Stack.SMP StartPairing`, `Pairing succeeded`. On the WCN7850 subevent `0x07` never arrives.
+
+Cause, from `bluetoothd`: it chooses the HCI *LE Set Event Mask* by chipset. For chipset 0 (`THIRD_PARTY_DONGLE`) it sends the spec default `0x1F`; Apple and Broadcom chipsets get `0x000BF3FF3F86FA7F` (26.x) / `0x808FFBFF3F86FA7F` (27.x). `0x1F` has neither *LE Data Length Change* (bit 6) nor *LE PHY Update Complete* (bit 11), but the link-ready state machine still goes to `wait-for-length` when both sides support data length extension, so the link never becomes ready. On 26.7.1 x86_64 the choice is a small helper, `test eax,eax; mov ecx,0x1F; movabs rax,<Apple mask>; cmove rax,rcx`; there is also a table with the same two masks.
+
+Fix (`patches/bluetoolfixup-le-event-mask.patch`, applied by `scripts/build-bluetoolfixup.sh`, active with `-btlfxlemask`): BlueToolFixup's `cs_validate_page` hook rewrites `mov ecx,0x1F` to `mov ecx,0x87F` and the table entry to the same value (bits 0-6 and 11). The first version used `0x85F` (without bit 5, *LE Remote Connection Parameter Request*): the link then became ready and SMP pairing succeeded, but the controller dropped the link 90 ms later (`reason 719`, remotely initiated) and kept doing so; with bit 5 set, as in Apple's mask, it stays connected. Tested: Xbox Series controller, a BLE mouse and a BLE keyboard pair and stay connected on 26.7.1.
+
+Also seen, harmless: `Set data length extended error status STATUS 701` (a Broadcom vendor command) and `Failed to set prioritization threshold`.

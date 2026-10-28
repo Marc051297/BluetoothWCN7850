@@ -1,0 +1,79 @@
+--- a/BrcmPatchRAM/BlueToolFixup.cpp
++++ b/BrcmPatchRAM/BlueToolFixup.cpp
+@@ -161,9 +161,56 @@
+     0x90, 0x90
+ };
+ 
++// bluetoothd picks the LE Set Event Mask by chipset. THIRD_PARTY_DONGLE gets the spec default
++// (1F 00 ..), the entry right before Apple's mask, which leaves out LE Data Length Change (bit 6)
++// and LE PHY Update Complete (bit 11) while the link-ready state machine still waits for them.
++// Bit 5 (Remote Connection Parameter Request) is added too, as in Apple's mask, so a peripheral's
++// parameter request reaches the host instead of being refused by the controller.
++static const uint8_t kDongleLEEventMaskOriginal[] =
++{
++    0x1F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++    0x7F, 0xFA, 0x86, 0x3F, 0xFF, 0xFB, 0x8F, 0x80
++};
++
++static const uint8_t kDongleLEEventMaskPatched[] =
++{
++    0x7F, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++    0x7F, 0xFA, 0x86, 0x3F, 0xFF, 0xFB, 0x8F, 0x80
++};
++
++// macOS 26: the mask comes from a helper that returns 0x1F when the chipset is 0, else Apple's mask.
++static const uint8_t kDongleLEEventMaskCode26Original[] =
++{
++    0x85, 0xC0,                                             // test eax, eax
++    0xB9, 0x1F, 0x00, 0x00, 0x00,                           // mov ecx, 0x1F
++    0x48, 0xB8, 0x7F, 0xFA, 0x86, 0x3F, 0xFF, 0xF3, 0x0B, 0x00, // movabs rax, Apple mask
++    0x48, 0x0F, 0x44, 0xC1                                  // cmove rax, rcx
++};
++
++static const uint8_t kDongleLEEventMaskCode26Patched[] =
++{
++    0x85, 0xC0,
++    0xB9, 0x7F, 0x08, 0x00, 0x00,                           // mov ecx, 0x87F
++    0x48, 0xB8, 0x7F, 0xFA, 0x86, 0x3F, 0xFF, 0xF3, 0x0B, 0x00,
++    0x48, 0x0F, 0x44, 0xC1
++};
++
++static const uint8_t kDongleLEEventMaskTable26Original[] =
++{
++    0x1F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++    0x7F, 0xFA, 0x86, 0x3F, 0xFF, 0xF3, 0x0B, 0x00
++};
++
++static const uint8_t kDongleLEEventMaskTable26Patched[] =
++{
++    0x7F, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++    0x7F, 0xFA, 0x86, 0x3F, 0xFF, 0xF3, 0x0B, 0x00
++};
++
+ static bool shouldPatchBoardId = false;
+ static bool shouldPatchAddress = false;
+ static bool shouldPatchNvramCheck = false;
++static bool shouldPatchLEEventMask = false;
+ 
+ static constexpr size_t kBoardIdSize = sizeof("Mac-9F18E312C5C2BF0B");
+ static constexpr size_t kBoardIdSizeLegacy = sizeof("Mac-F22586C8");
+@@ -236,6 +283,11 @@
+                 searchAndPatch(data, PAGE_SIZE, path, boardIdsWithUSBBluetooth[0], kBoardIdSize, BaseDeviceInfo::get().boardIdentifier, kBoardIdSize);
+             if (shouldPatchAddress)
+                 searchAndPatchWithMask(data, PAGE_SIZE, path, kSkipAddressCheckOriginal, kSkipAddressCheckMask, kSkipAddressCheckPatched, kSkipAddressCheckMask);
++            if (shouldPatchLEEventMask) {
++                searchAndPatch(data, PAGE_SIZE, path, kDongleLEEventMaskCode26Original, kDongleLEEventMaskCode26Patched);
++                searchAndPatch(data, PAGE_SIZE, path, kDongleLEEventMaskTable26Original, kDongleLEEventMaskTable26Patched);
++                searchAndPatch(data, PAGE_SIZE, path, kDongleLEEventMaskOriginal, kDongleLEEventMaskPatched);
++            }
+         }
+     }
+ }
+@@ -267,6 +319,7 @@
+             shouldPatchAddress = checkKernelArgument("-btlfxallowanyaddr");
+         if (getKernelVersion() <= KernelVersion::Sonoma)
+             shouldPatchNvramCheck = checkKernelArgument("-btlfxnvramcheck");
++        shouldPatchLEEventMask = checkKernelArgument("-btlfxlemask");
+         KernelPatcher::RouteRequest csRoute = KernelPatcher::RouteRequest("_cs_validate_page", patched_cs_validate_page, orig_cs_validate);
+         if (!patcher.routeMultipleLong(KernelPatcher::KernelID, &csRoute, 1))
+             SYSLOG(MODULE_SHORT, "failed to route cs validation pages");

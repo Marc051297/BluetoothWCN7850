@@ -29,8 +29,15 @@ s=s.replace('    "Mac-F60DEB81FF30ACF6",\n','    "Mac-9F18E312C5C2BF0B",  /* was
 open(p,'w').write(s)
 PY
 grep -q 'was MacPro6,1' BrcmPatchRAM/BlueToolFixup.cpp || { echo "STOP: board-id patch did not apply"; exit 1; }
+# LE event mask fix, active with the -btlfxlemask boot-arg: bluetoothd gives a THIRD_PARTY_DONGLE the spec-default
+# LE event mask (0x1F), which leaves out LE Data Length Change and LE PHY Update Complete, yet its link-ready state
+# machine waits for them. BLE HID devices (Xbox controller, mice) then connect but never pair. The patch widens the
+# mask to 0x87F (adds bits 5, 6 and 11, as Apple's own mask has) in bluetoothd's 26.x code path and table, plus the
+# 27.x table. See docs/04-bringup.md, "BLE HID devices connect but never pair".
+grep -q kDongleLEEventMaskCode26Original BrcmPatchRAM/BlueToolFixup.cpp || git apply "$ROOT/patches/bluetoolfixup-le-event-mask.patch"
+grep -q kDongleLEEventMaskCode26Original BrcmPatchRAM/BlueToolFixup.cpp || { echo "STOP: LE event mask patch did not apply"; exit 1; }
 xcodebuild -project BrcmPatchRAM.xcodeproj -target BlueToolFixup -configuration Release \
-  CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" MACOSX_DEPLOYMENT_TARGET=10.13 -quiet
+  CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" MACOSX_DEPLOYMENT_TARGET=12.0 -quiet
 rm -rf "$OUT/BlueToolFixup.kext"
 mkdir -p "$OUT"
 cp -R build/Products/Release/BlueToolFixup.kext "$OUT/"
